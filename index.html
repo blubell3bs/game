@@ -432,6 +432,12 @@ function drawSpider(x,y,t,big){
   ellipse(0,-3,3.5,3,'#2a2c3a');
   rect(-2,-4,1.4,1.4, big?'#ff4d4d':'#ff8a3c');
   rect(0.8,-4,1.4,1.4, big?'#ff4d4d':'#ff8a3c');
+  // scuttle motion lines trailing behind (to the right)
+  ctx.strokeStyle='rgba(15,16,24,.45)'; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(13,-2); ctx.lineTo(21,-2);
+  ctx.moveTo(13,2);  ctx.lineTo(24,2);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -576,7 +582,9 @@ function buildLevel(idx){
   // spiders spread between 700 and end-300, avoiding exact moth columns
   for(let i=0;i<cfg.spiders;i++){
     const sx = rand(760, end-340);
-    spiders.push({wx:sx, hit:false, phase:rand(0,6.28)});
+    // spiders scuttle LEFT faster than the world scroll so the cat can clear them;
+    // they only "charge" once on-screen (below), which keeps their arrival spread out.
+    spiders.push({wx:sx, hit:false, phase:rand(0,6.28), vx: Math.max(72, cfg.speed*0.9)});
   }
   return {cfg, moths, spiders, end, idx};
 }
@@ -739,7 +747,10 @@ function updateLevel(dt){
   for(const sp of lvl.spiders){
     if(sp.hit) continue;
     sp.phase+=dt;
-    const sx=sp.wx-game.worldScroll;
+    let sx=sp.wx-game.worldScroll;
+    // once the spider is on (or just off) screen, it scuttles toward the cat
+    // faster than the background scroll — giving a real window to leap over it.
+    if(sx < W+20){ sp.wx -= sp.vx*dt; sx = sp.wx-game.worldScroll; }
     if(sx< -30){ sp.hit=true; continue; }
     const big=cfg.big;
     const sw=big?28:18, sh=big?20:14;
